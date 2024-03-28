@@ -12,22 +12,39 @@ function hashMap() {
         return hashCode % 16;
     }
 
-    function set(key, value) {
+    function set(key, innerValue) {
         const keyIndex = hash(key);
+        const keyNode = node({ key, innerValue });
         if (typeof buckets[keyIndex] === "undefined") {
-            buckets[keyIndex] = value;
-        } else if (typeof buckets[keyIndex] === "string") {
-            const keyLinkedList = linkedList();
-            const currentNode = node(value, null);
-            const headNode = node(buckets[keyIndex]);
-            keyLinkedList.append(headNode);
-            keyLinkedList.append(currentNode);
-            buckets[keyIndex] = keyLinkedList.getHead();
+            buckets[keyIndex] = keyNode;
         } else {
+            const keyLinkedList = linkedList();
+            keyLinkedList.append(buckets[keyIndex]);
+            if (
+                keyLinkedList.overValue(
+                    keyNode.value.key,
+                    keyNode.value.innerValue
+                )
+            ) {
+                return;
+            }
+            keyLinkedList.append(keyNode);
         }
     }
 
-    return { buckets, hash, set };
+    function get(key) {
+        const keyIndex = hash(key);
+        const headNode = buckets[keyIndex];
+        if (headNode) {
+            const keyLinkedList = linkedList();
+            keyLinkedList.append(headNode);
+            const valueOfKey = keyLinkedList.getValueOfKey(key);
+            return valueOfKey;
+        }
+        return "we don't have any data for requested key!";
+    }
+
+    return { buckets, hash, set, get };
 }
 
 const node = (value = null, next = null) => {
@@ -114,6 +131,39 @@ const linkedList = () => {
         return false;
     }
 
+    function containsKey(reqKey) {
+        let currentNode = getHead();
+        while (currentNode) {
+            if (currentNode.value.key === reqKey) return true;
+            currentNode = currentNode.next;
+        }
+        return false;
+    }
+
+    function overValue(reqKey, reqValue) {
+        let currentNode = getHead();
+        let checker = false;
+        while (currentNode) {
+            if (currentNode.value.key === reqKey) {
+                currentNode.value.innerValue = reqValue;
+                checker = true;
+            }
+            currentNode = currentNode.next;
+        }
+        return checker;
+    }
+
+    function getValueOfKey(reqKey) {
+        let currentNode = getHead();
+        while (currentNode) {
+            if (currentNode.value.key === reqKey) {
+                return currentNode.value.innerValue;
+            }
+            currentNode = currentNode.next;
+        }
+        return null;
+    }
+
     function findIndex(recValue) {
         let currentNode = getHead();
         let recIndex = 0;
@@ -154,17 +204,26 @@ const linkedList = () => {
         containsValue,
         findIndex,
         toString,
+        containsKey,
+        overValue,
+        getValueOfKey,
     };
 };
 
 const name1 = "Ghazaleh";
+const name2 = "Ghazaleh";
+const name3 = "gHazaleH";
+const name4 = "Ghazaleh";
+const name5 = "Sina";
+const name6 = "Ghazaleh";
 
 const myHashMap = hashMap();
 
-console.log(myHashMap.buckets);
-
 myHashMap.set(name1, "the best player");
+myHashMap.set(name2, "the best player of all time");
+myHashMap.set(name3, "the goat");
+myHashMap.set(name4, "new one");
+myHashMap.set(name5, "the programmer");
+myHashMap.set(name6, "new GOAT");
 
-myHashMap.set(name1, "the best player");
-
-console.log(myHashMap.buckets);
+console.log(myHashMap.get(name1));
