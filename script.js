@@ -1,244 +1,158 @@
-function hashMap() {
-    let buckets = new Array(16);
+function createHashMap(initialCapacity = 10, loadFactor = 0.75) {
+    const bucket = new Array(initialCapacity);
+    let size = 0;
 
     function hash(key) {
         let hashCode = 0;
-
         const primeNumber = 31;
         for (let i = 0; i < key.length; i++) {
-            hashCode = primeNumber * hashCode + key.charCodeAt(i);
+            hashCode =
+                (primeNumber * hashCode + key.charCodeAt(i)) % bucket.length;
         }
-
-        return hashCode % 16;
+        return hashCode;
     }
 
-    function set(key, innerValue) {
-        const keyIndex = hash(key);
-        const keyNode = node({ key, innerValue });
-        if (typeof buckets[keyIndex] === "undefined") {
-            buckets[keyIndex] = keyNode;
-        } else {
-            const keyLinkedList = linkedList();
-            keyLinkedList.append(buckets[keyIndex]);
-            if (
-                keyLinkedList.overValue(
-                    keyNode.value.key,
-                    keyNode.value.innerValue
-                )
-            ) {
+    function set(key, value) {
+        const index = hash(key);
+        if (!bucket[index]) {
+            bucket[index] = [];
+        }
+        for (let pair of bucket[index]) {
+            if (pair[0] === key) {
+                pair[1] = value;
                 return;
             }
-            keyLinkedList.append(keyNode);
+        }
+        bucket[index].push([key, value]);
+        size++;
+        if (size > bucket.length * loadFactor) {
+            grow();
         }
     }
 
     function get(key) {
-        const keyIndex = hash(key);
-        const headNode = buckets[keyIndex];
-        if (headNode) {
-            const keyLinkedList = linkedList();
-            keyLinkedList.append(headNode);
-            const valueOfKey = keyLinkedList.getValueOfKey(key);
-            return valueOfKey;
+        const index = hash(key);
+        if (!bucket[index]) return null;
+        for (let pair of bucket[index]) {
+            if (pair[0] === key) {
+                return pair[1];
+            }
         }
-        return "we don't have any data for requested key!";
+        return null;
     }
 
     function has(key) {
-        const keyIndex = hash(key);
-        const headNode = buckets[keyIndex];
-        if (headNode) {
-            const keyLinkedList = linkedList();
-            keyLinkedList.append(headNode);
-            const isKey = keyLinkedList.containsKey(key);
-            return isKey;
+        const index = hash(key);
+        if (!bucket[index]) return false;
+        for (let pair of bucket[index]) {
+            if (pair[0] === key) {
+                return true;
+            }
         }
         return false;
     }
 
-    return { buckets, hash, set, get, has };
-}
-
-const node = (value = null, next = null) => {
-    return { value, next };
-};
-
-const linkedList = () => {
-    let head = null;
-    let tail = null;
-    let size = 0;
-
-    function getHead() {
-        return head;
+    function remove(key) {
+        const index = hash(key);
+        if (!bucket[index]) return false;
+        for (let i = 0; i < bucket[index].length; i++) {
+            if (bucket[index][i][0] === key) {
+                bucket[index].splice(i, 1);
+                size--;
+                return true;
+            }
+        }
+        return false;
     }
 
-    function getTail() {
-        return tail;
-    }
-
-    function getSize() {
+    function length() {
         return size;
     }
 
-    function append(node) {
-        const newTail = node;
-        let currentNode = getHead();
-        if (currentNode === null) {
-            currentNode = newTail;
-            head = currentNode;
-            tail = currentNode;
-        } else {
-            while (currentNode.next) {
-                currentNode = currentNode.next;
+    function clear() {
+        bucket.fill(undefined);
+        size = 0;
+    }
+
+    function keys() {
+        const keysArray = [];
+        for (let i = 0; i < bucket.length; i++) {
+            if (bucket[i]) {
+                for (let pair of bucket[i]) {
+                    keysArray.push(pair[0]);
+                }
             }
-            currentNode.next = newTail;
-            tail = newTail;
         }
-        size++;
+        return keysArray;
     }
 
-    function prepend(node) {
-        const newHead = node;
-        let currentNode = getHead();
-        if (currentNode === null) {
-            currentNode = newHead;
-            head = currentNode;
-            tail = currentNode;
-        } else {
-            newHead.next = currentNode;
-            head = newHead;
-        }
-        size++;
-    }
-
-    function getNodeAt(index) {
-        if (index > getSize() - 1 || index < 0) return null;
-        let currentNode = getHead();
-        for (let i = 1; i <= index; i++) {
-            currentNode = currentNode.next;
-        }
-        return currentNode;
-    }
-
-    function popNode() {
-        let tailNode = getTail();
-        let currentNode = getHead();
-        if (tailNode === null) return;
-        else {
-            while (currentNode.next !== tailNode) {
-                currentNode = currentNode.next;
+    function values() {
+        const valuesArray = [];
+        for (let i = 0; i < bucket.length; i++) {
+            if (bucket[i]) {
+                for (let pair of bucket[i]) {
+                    valuesArray.push(pair[1]);
+                }
             }
-            currentNode.next = null;
-            tail = currentNode;
-            size--;
         }
+        return valuesArray;
     }
 
-    function containsValue(recValue) {
-        let currentNode = getHead();
-        while (currentNode) {
-            if (currentNode.value === recValue) return true;
-            currentNode = currentNode.next;
-        }
-        return false;
-    }
-
-    function containsKey(reqKey) {
-        let currentNode = getHead();
-        while (currentNode) {
-            if (currentNode.value.key === reqKey) return true;
-            currentNode = currentNode.next;
-        }
-        return false;
-    }
-
-    function overValue(reqKey, reqValue) {
-        let currentNode = getHead();
-        let checker = false;
-        while (currentNode) {
-            if (currentNode.value.key === reqKey) {
-                currentNode.value.innerValue = reqValue;
-                checker = true;
+    function entries() {
+        const entriesArray = [];
+        for (let i = 0; i < bucket.length; i++) {
+            if (bucket[i]) {
+                for (let pair of bucket[i]) {
+                    entriesArray.push(pair);
+                }
             }
-            currentNode = currentNode.next;
         }
-        return checker;
+        return entriesArray;
     }
 
-    function getValueOfKey(reqKey) {
-        let currentNode = getHead();
-        while (currentNode) {
-            if (currentNode.value.key === reqKey) {
-                return currentNode.value.innerValue;
+    function grow() {
+        const newCapacity = bucket.length * 2;
+        const newBucket = new Array(newCapacity);
+        for (let i = 0; i < bucket.length; i++) {
+            if (bucket[i]) {
+                for (let pair of bucket[i]) {
+                    const newIndex = hash(pair[0]);
+                    if (!newBucket[newIndex]) {
+                        newBucket[newIndex] = [];
+                    }
+                    newBucket[newIndex].push(pair);
+                }
             }
-            currentNode = currentNode.next;
         }
-        return null;
-    }
-
-    function findIndex(recValue) {
-        let currentNode = getHead();
-        let recIndex = 0;
-        while (currentNode) {
-            recIndex++;
-            if (currentNode.value === recValue) return recIndex - 1;
-            currentNode = currentNode.next;
+        bucket.length = newBucket.length;
+        for (let i = 0; i < newBucket.length; i++) {
+            bucket[i] = newBucket[i];
         }
-        return null;
-    }
-
-    function toString() {
-        let currentNode = getHead();
-        let nodeString = "";
-        if (currentNode === null) {
-            nodeString = "Empty Node!";
-            return nodeString;
-        }
-        while (currentNode) {
-            if (currentNode === getHead()) nodeString += "(head)";
-            nodeString += `(${currentNode.value})`;
-            if (currentNode === getTail()) nodeString += "(tail)";
-            nodeString += " -> ";
-            currentNode = currentNode.next;
-        }
-        nodeString += "null";
-        return nodeString;
     }
 
     return {
-        append,
-        prepend,
-        getHead,
-        getTail,
-        getSize,
-        getNodeAt,
-        popNode,
-        containsValue,
-        findIndex,
-        toString,
-        containsKey,
-        overValue,
-        getValueOfKey,
+        set,
+        get,
+        has,
+        remove,
+        length,
+        clear,
+        keys,
+        values,
+        entries,
     };
-};
+}
 
-const name1 = "Ghazaleh";
-const name2 = "Ghazaleh";
-const name3 = "gHazaleH";
-const name4 = "Ghazaleh";
-const name5 = "Sina";
-const name6 = "Ghazaleh";
-const name7 = "Iman";
-
-const myHashMap = hashMap();
-
-myHashMap.set(name1, "the best player");
-myHashMap.set(name2, "the best player of all time");
-myHashMap.set(name3, "the goat");
-myHashMap.set(name4, "new one");
-myHashMap.set(name5, "the programmer");
-myHashMap.set(name6, "new GOAT");
-
-console.log(myHashMap.get(name1));
-
-console.log(myHashMap.has(name7));
+// Example usage:
+const map = createHashMap();
+map.set("key1", "value1");
+map.set("key2", "value2");
+console.log(map.get("key1")); // Output: value1
+console.log(map.has("key2")); // Output: true
+console.log(map.remove("key1")); // Output: true
+console.log(map.length()); // Output: 1
+console.log(map.keys()); // Output: ["key2"]
+console.log(map.values()); // Output: ["value2"]
+console.log(map.entries()); // Output: [["key2", "value2"]]
+map.clear();
+console.log(map.length()); // Output: 0
