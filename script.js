@@ -44,7 +44,19 @@ function hashMap() {
         return "we don't have any data for requested key!";
     }
 
-    return { buckets, hash, set, get };
+    function has(key) {
+        const keyIndex = hash(key);
+        const headNode = buckets[keyIndex];
+        if (headNode) {
+            const keyLinkedList = linkedList();
+            keyLinkedList.append(headNode);
+            const isKey = keyLinkedList.containsKey(key);
+            return isKey;
+        }
+        return false;
+    }
+
+    return { buckets, hash, set, get, has };
 }
 
 const node = (value = null, next = null) => {
@@ -216,6 +228,7 @@ const name3 = "gHazaleH";
 const name4 = "Ghazaleh";
 const name5 = "Sina";
 const name6 = "Ghazaleh";
+const name7 = "Iman";
 
 const myHashMap = hashMap();
 
@@ -227,3 +240,5 @@ myHashMap.set(name5, "the programmer");
 myHashMap.set(name6, "new GOAT");
 
 console.log(myHashMap.get(name1));
+
+console.log(myHashMap.has(name7));
